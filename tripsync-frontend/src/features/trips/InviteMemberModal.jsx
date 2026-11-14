@@ -18,7 +18,7 @@ export default function InviteMemberModal({ isOpen, onClose, tripId }) {
     setLoading(true);
     try {
       await tripApi.inviteMember(tripId, { email, role });
-      setSuccess(`Invitation email sent to ${email} as ${role}.`);
+      setSuccess(`Invitation sent to ${email}!`);
       setEmail('');
     } catch (err) {
       setError(err?.message || 'Failed to send invitation.');
@@ -28,24 +28,24 @@ export default function InviteMemberModal({ isOpen, onClose, tripId }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
-        <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-slate-900">Invite Member via Email</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-800 text-slate-100">
+        <div className="flex justify-between items-center pb-4 border-b border-slate-800">
+          <h2 className="text-lg font-bold text-white">Invite Trip Member</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm flex items-center gap-2">
+          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="mt-4 p-3 rounded-lg bg-emerald-50 text-emerald-700 text-sm flex items-center gap-2">
+          <div className="mt-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{success}</span>
           </div>
@@ -53,30 +53,33 @@ export default function InviteMemberModal({ isOpen, onClose, tripId }) {
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">
+              Invitee Email Address *
+            </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
               <input
                 type="email"
                 required
                 placeholder="friend@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full pl-10 pr-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-indigo-500 outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Assign Trip Role</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">
+              Permission Role *
+            </label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
+              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-indigo-500 outline-none"
             >
-              <option value="EDITOR">EDITOR (Can add/edit itinerary, expenses, docs)</option>
+              <option value="EDITOR">EDITOR (Can add/edit itinerary, expenses & docs)</option>
               <option value="VIEWER">VIEWER (Read-only access)</option>
-              <option value="OWNER">OWNER (Full control + member management)</option>
             </select>
           </div>
 
@@ -84,14 +87,14 @@ export default function InviteMemberModal({ isOpen, onClose, tripId }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl"
+              className="px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 rounded-xl"
             >
               Close
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl disabled:opacity-60"
+              className="px-5 py-2 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl disabled:opacity-60"
             >
               {loading ? 'Sending...' : 'Send Invite'}
             </button>

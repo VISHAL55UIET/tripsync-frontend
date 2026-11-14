@@ -2,20 +2,29 @@ import { useState, useEffect } from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { itineraryApi } from '../../api/itineraryApi';
 
-export default function CreateItineraryModal({ isOpen, onClose, tripId, trip, editData, onSaved }) {
-  const [form, setForm] = useState({ date: '', note: '' });
+export default function CreateItineraryModal({
+  isOpen,
+  onClose,
+  tripId,
+  trip,
+  editData,
+  onSaved,
+}) {
+  const [date, setDate] = useState('');
+  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (editData) {
-      setForm({
-        date: editData.date || '',
-        note: editData.notes || editData.note || '',
-      });
+      setDate(editData.date || '');
+      // Response DTO me 'notes' aata hai
+      setNote(editData.notes || '');
     } else {
-      setForm({ date: trip?.startDate || '', note: '' });
+      setDate(trip?.startDate || '');
+      setNote('');
     }
+    setError('');
   }, [editData, trip, isOpen]);
 
   if (!isOpen) return null;
@@ -25,10 +34,12 @@ export default function CreateItineraryModal({ isOpen, onClose, tripId, trip, ed
     setError('');
     setLoading(true);
     try {
+      // Request DTO me backend 'note' (singular) expect karta hai
+      const payload = { date, note: note.trim() || null };
       if (editData) {
-        await itineraryApi.updateItinerary(tripId, editData.id, form);
+        await itineraryApi.updateItinerary(tripId, editData.id, payload);
       } else {
-        await itineraryApi.createItinerary(tripId, form);
+        await itineraryApi.createItinerary(tripId, payload);
       }
       onSaved();
       onClose();
@@ -40,19 +51,19 @@ export default function CreateItineraryModal({ isOpen, onClose, tripId, trip, ed
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
-        <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-slate-900">
-            {editData ? 'Edit Day Plan' : 'Add Itinerary Day'}
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-800 text-slate-100">
+        <div className="flex justify-between items-center pb-4 border-b border-slate-800">
+          <h2 className="text-lg font-bold text-white">
+            {editData ? 'Edit Itinerary Day' : 'Add Itinerary Day'}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 p-3 rounded-lg bg-rose-50 text-rose-700 text-sm flex items-center gap-2">
+          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -60,27 +71,30 @@ export default function CreateItineraryModal({ isOpen, onClose, tripId, trip, ed
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Date *</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Date *</label>
             <input
               type="date"
               required
               min={trip?.startDate}
               max={trip?.endDate}
-              value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-indigo-500 outline-none"
             />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Must be within {trip?.startDate} and {trip?.endDate}
+            </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Day Notes / Theme</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1">Day Notes</label>
             <textarea
               rows={3}
               maxLength={1000}
-              placeholder="e.g., Arrival, check-in, and Old Manali cafe hopping"
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              placeholder="e.g., Arrival & Old Town exploration"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-indigo-500 outline-none"
             />
           </div>
 
@@ -88,14 +102,14 @@ export default function CreateItineraryModal({ isOpen, onClose, tripId, trip, ed
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl"
+              className="px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 rounded-xl"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl disabled:opacity-60"
+              className="px-5 py-2 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl disabled:opacity-60"
             >
               {loading ? 'Saving...' : 'Save Day'}
             </button>

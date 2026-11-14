@@ -13,20 +13,22 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
-        <Link to="/dashboard" className="flex items-center gap-2.5 text-indigo-600 font-bold text-xl">
-          <Compass className="w-7 h-7" />
-          <span>TripSync</span>
+        <Link to="/dashboard" className="flex items-center gap-2.5 text-white font-bold text-xl">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-600/25">
+            <Compass className="w-5 h-5 text-white" />
+          </div>
+          <span className="tracking-tight">TripSync</span>
         </Link>
 
         {/* Right Controls */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           {user?.role === 'ADMIN' && (
             <Link
               to="/admin/users"
-              className="flex items-center gap-1.5 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition"
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/20 px-3 py-1.5 rounded-xl transition"
             >
               <Shield className="w-4 h-4" />
               <span>Admin Panel</span>
@@ -37,9 +39,9 @@ export default function Navbar() {
 
           <Link
             to="/profile"
-            className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-indigo-600 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition"
+            className="flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl hover:bg-slate-900 border border-transparent hover:border-slate-800 transition"
           >
-            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-semibold">
+            <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 flex items-center justify-center font-bold text-xs">
               {user?.fullName?.charAt(0)?.toUpperCase() || <User className="w-4 h-4" />}
             </div>
             <span className="hidden sm:inline">{user?.fullName || 'Profile'}</span>
@@ -47,7 +49,7 @@ export default function Navbar() {
 
           <button
             onClick={handleLogout}
-            className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+            className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition"
             title="Logout"
           >
             <LogOut className="w-5 h-5" />

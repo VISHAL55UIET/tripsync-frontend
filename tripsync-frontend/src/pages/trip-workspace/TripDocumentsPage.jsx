@@ -1,158 +1,175 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Upload, FileText, Download, Trash2, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { FileText, Plus, Download, Trash2, FolderOpen, HardDrive } from 'lucide-react';
 import { useTrip } from '../../context/TripContext';
+import { useAuth } from '../../context/AuthContext';
 import { workspaceApi } from '../../api/workspaceApi';
-
-function formatBytes(bytes) {
-  if (!bytes) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
+import AddDocumentModal from '../../features/documents/AddDocumentModal';
 
 export default function TripDocumentsPage() {
-  const { trip, permissions } = useTrip();
+  const { trip, members, permissions } = useTrip();
+  const { user } = useAuth();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
-  const fileInputRef = useRef(null);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const loadDocuments = useCallback(async () => {
+  const loadDocs = useCallback(async () => {
     if (!trip?.id) return;
     try {
       setLoading(true);
       const data = await workspaceApi.getDocuments(trip.id);
       setDocuments(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Failed to load documents:', err);
+      console.error('Failed to fetch documents:', err);
     } finally {
       setLoading(false);
     }
   }, [trip?.id]);
 
   useEffect(() => {
-    loadDocuments();
-  }, [loadDocuments]);
+    loadDocs();
+  }, [loadDocs]);
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setError('');
-    setUploading(true);
+  const handleDownload = async (doc) => {
     try {
-      await workspaceApi.uploadDocument(trip.id, file);
-      loadDocuments();
+      setDownloadingId(doc.id);
+      await workspaceApi.downloadDocument(trip.id, doc.id, doc.originalFileName);
     } catch (err) {
-      setError(err?.message || 'File upload failed. Check file type or size limits.');
+      alert(err?.message || 'Failed to download document.');
     } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setDownloadingId(null);
     }
   };
 
-  const handleDelete = async (docId, name) => {
-    if (!window.confirm(`Delete "${name}"?`)) return;
+  const handleDelete = async (docId) => {
+    if (!window.confirm('Permanently delete this document?')) return;
     try {
       await workspaceApi.deleteDocument(trip.id, docId);
-      setDocuments((prev) => prev.filter((d) => d.id !== docId));
+      loadDocs();
     } catch (err) {
-      alert(err?.message || 'Failed to delete document.');
+      alert(err?.message || 'Only trip owner or uploader can delete this document.');
     }
   };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
+  const getFileBadge = (contentType = '') => {
+    if (contentType.includes('pdf')) return 'PDF';
+    if (contentType.includes('image')) return 'IMAGE';
+    if (contentType.includes('word')) return 'DOCX';
+    if (contentType.includes('text')) return 'TXT';
+    return 'FILE';
+  };
+
+  const getUploaderName = (uploadedById) => {
+    const member = members.find((m) => m.userId === uploadedById);
+    return member ? member.fullName : `User #${uploadedById}`;
+  };
+
+  if (loading) {
+    return <div className="h-48 bg-slate-900 rounded-2xl border border-slate-800 animate-pulse" />;
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/90 p-5 rounded-2xl border border-slate-800">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Trip Documents & Tickets</h2>
-          <p className="text-xs text-slate-500">
-            Store flight tickets, hotel vouchers, permits, and IDs securely
+          <h2 className="text-lg font-bold text-white">Trip Documents & Tickets</h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Secure vault for flight tickets, hotel bookings, and travel permits
           </p>
         </div>
-
         {permissions.canEdit && (
-          <div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-            <button
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-60"
-            >
-              <Upload className="w-4 h-4" />
-              <span>{uploading ? 'Uploading...' : 'Upload Document'}</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-md shadow-indigo-600/20 transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Upload Document</span>
+          </button>
         )}
       </div>
 
-      {error && (
-        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="h-40 bg-white rounded-2xl border border-slate-200 animate-pulse" />
-      ) : documents.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-          <FileText className="w-10 h-10 text-indigo-400 mx-auto mb-3" />
-          <h3 className="font-bold text-slate-800">No documents uploaded yet</h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Upload PDFs, images, or booking confirmations for everyone on the trip.
+      {documents.length === 0 ? (
+        <div className="bg-slate-900/80 rounded-2xl border border-slate-800 p-12 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-400 flex items-center justify-center mx-auto mb-3">
+            <FolderOpen className="w-6 h-6" />
+          </div>
+          <h3 className="font-bold text-white">No documents uploaded yet</h3>
+          <p className="text-sm text-slate-400 mt-1">
+            Upload PDF tickets, hotel vouchers, or ID proofs for easy group access.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {documents.map((doc) => (
-            <div
-              key={doc.id}
-              className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between gap-3 shadow-xs"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-900 truncate" title={doc.originalFileName}>
-                    {doc.originalFileName}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {formatBytes(doc.fileSize)} •{' '}
-                    {doc.createdAt ? new Date(doc.createdAt).toLocaleDateString() : ''}
-                  </p>
-                </div>
-              </div>
+          {documents.map((doc) => {
+            const canDelete = permissions.isOwner || doc.uploadedById === user?.id;
 
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => workspaceApi.downloadDocument(trip.id, doc.id, doc.originalFileName)}
-                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                  title="Download"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
-                {permissions.canEdit && (
-                  <button
-                    onClick={() => handleDelete(doc.id, doc.originalFileName)}
-                    className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                    title="Delete"
+            return (
+              <div
+                key={doc.id}
+                className="bg-slate-900/90 rounded-2xl border border-slate-800 hover:border-indigo-500/40 p-5 flex flex-col justify-between transition"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-indigo-500/15 text-indigo-300 border border-indigo-500/25">
+                      {getFileBadge(doc.contentType)}
+                    </span>
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDelete(doc.id)}
+                        className="text-slate-500 hover:text-rose-400 transition"
+                        title="Delete document"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  <h3
+                    className="font-bold text-white mt-3 flex items-center gap-2"
+                    title={doc.originalFileName}
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
+                    <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <span className="truncate">{doc.originalFileName}</span>
+                  </h3>
+
+                  <div className="flex items-center gap-3 text-xs text-slate-400 mt-2">
+                    <span className="inline-flex items-center gap-1">
+                      <HardDrive className="w-3.5 h-3.5 text-slate-500" />
+                      {formatFileSize(doc.fileSize)}
+                    </span>
+                    <span>•</span>
+                    <span>By {getUploaderName(doc.uploadedById)}</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={downloadingId === doc.id}
+                  onClick={() => handleDownload(doc)}
+                  className="mt-4 inline-flex items-center justify-center gap-1.5 w-full py-2 text-xs font-semibold text-indigo-300 bg-indigo-500/15 border border-indigo-500/25 hover:bg-indigo-500/25 rounded-xl transition disabled:opacity-50"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{downloadingId === doc.id ? 'Downloading...' : 'Download File'}</span>
+                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      <AddDocumentModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        tripId={trip.id}
+        onAdded={loadDocs}
+      />
     </div>
   );
 }
