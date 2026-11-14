@@ -14,4 +14,10 @@ export const financeApi = {
   getSettlements: (tripId) => axiosClient.get(`/api/trips/${tripId}/settlements`),
   recordSettlement: (tripId, data) =>
     axiosClient.post(`/api/trips/${tripId}/settlements/settlements`, data),
+
+  // Razorpay Online Settlement
+  createRazorpayOrder: (tripId, data) =>
+    axiosClient.post(`/api/trips/${tripId}/settlements/razorpay/order`, data),
+  verifyRazorpayPayment: (tripId, data) =>
+    axiosClient.post(`/api/trips/${tripId}/settlements/razorpay/verify`, data),
 };

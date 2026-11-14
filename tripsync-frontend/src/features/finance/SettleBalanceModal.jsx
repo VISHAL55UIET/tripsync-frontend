@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, AlertCircle, UserCheck } from 'lucide-react';
+import { X, AlertCircle, UserCheck, CreditCard, CheckCircle2 } from 'lucide-react';
 import { financeApi } from '../../api/financeApi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -9,9 +9,9 @@ export default function SettleBalanceModal({ isOpen, onClose, tripId, members, o
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [razorpayLoading, setRazorpayLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Current logged-in user ko exclude karke baaki members dikhao
   const eligiblePayees = useMemo(() => {
     return (members || []).filter((m) => m.email !== user?.email);
   }, [members, user?.email]);
@@ -29,26 +29,31 @@ export default function SettleBalanceModal({ isOpen, onClose, tripId, members, o
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const validateInputs = (minAmount = 0.01) => {
     setError('');
-
     if (!payeeId) {
       setError('Please select a trip member to pay.');
-      return;
+      return null;
     }
-
     const numericAmount = parseFloat(amount);
-    if (!numericAmount || numericAmount < 0.01) {
-      setError('Amount must be at least ₹0.01.');
-      return;
+    if (!numericAmount || numericAmount < minAmount) {
+      setError(`Amount must be at least ₹${minAmount.toFixed(2)}.`);
+      return null;
     }
+    return Number(numericAmount.toFixed(2));
+  };
+
+  // 1. Offline / Manual Settlement
+  const handleManualSubmit = async (e) => {
+    e.preventDefault();
+    const validAmount = validateInputs(0.01);
+    if (!validAmount) return;
 
     setLoading(true);
     try {
       await financeApi.recordSettlement(tripId, {
         payeeId: Number(payeeId),
-        amount: Number(numericAmount.toFixed(2)),
+        amount: validAmount,
         note: note.trim() || null,
       });
       setAmount('');
@@ -62,11 +67,82 @@ export default function SettleBalanceModal({ isOpen, onClose, tripId, members, o
     }
   };
 
+  // 2. Online Razorpay Settlement
+  const handleRazorpayPay = async () => {
+    const validAmount = validateInputs(1.0); // Razorpay minimum ₹1.00
+    if (!validAmount) return;
+
+    if (!window.Razorpay) {
+      setError('Razorpay SDK failed to load. Check your internet connection or index.html.');
+      return;
+    }
+
+    setRazorpayLoading(true);
+    try {
+      const orderData = await financeApi.createRazorpayOrder(tripId, {
+        payeeId: Number(payeeId),
+        amount: validAmount,
+        note: note.trim() || null,
+      });
+
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amountInPaise,
+        currency: orderData.currency || 'INR',
+        name: 'TripSync',
+        description: `Settlement to ${orderData.payeeName}`,
+        order_id: orderData.orderId,
+        prefill: {
+          name: user?.fullName || '',
+          email: user?.email || '',
+        },
+        theme: {
+          color: '#4f46e5',
+        },
+        handler: async (response) => {
+          try {
+            await financeApi.verifyRazorpayPayment(tripId, {
+              payeeId: Number(payeeId),
+              amount: validAmount,
+              note: note.trim() || null,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+            setAmount('');
+            setNote('');
+            onSettled();
+            onClose();
+          } catch (verifyErr) {
+            setError(verifyErr?.message || 'Payment verification failed on server.');
+          } finally {
+            setRazorpayLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setRazorpayLoading(false);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', (resp) => {
+        setError(resp?.error?.description || 'Razorpay payment failed.');
+        setRazorpayLoading(false);
+      });
+      rzp.open();
+    } catch (err) {
+      setError(err?.message || 'Unable to initiate Razorpay checkout.');
+      setRazorpayLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center z-50 p-4">
       <div className="bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-800 text-slate-100">
         <div className="flex justify-between items-center pb-4 border-b border-slate-800">
-          <h2 className="text-lg font-bold text-white">Record Settlement</h2>
+          <h2 className="text-lg font-bold text-white">Settle Up Balance</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
@@ -94,11 +170,11 @@ export default function SettleBalanceModal({ isOpen, onClose, tripId, members, o
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <form onSubmit={handleManualSubmit} className="mt-4 space-y-4">
             <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center gap-2.5 text-xs text-indigo-300">
               <UserCheck className="w-4 h-4 text-indigo-400 shrink-0" />
               <span>
-                Recording payment from <strong className="text-white">{user?.fullName}</strong> (You)
+                Paying from <strong className="text-white">{user?.fullName}</strong> (You)
               </span>
             </div>
 
@@ -141,28 +217,43 @@ export default function SettleBalanceModal({ isOpen, onClose, tripId, members, o
               <input
                 type="text"
                 maxLength={500}
-                placeholder="e.g., Paid via UPI"
+                placeholder="e.g., Hotel & cab split"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 className="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-indigo-500 outline-none"
               />
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="pt-2 space-y-2.5">
+              {/* Online Razorpay Button */}
               <button
                 type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-slate-400 hover:bg-slate-800 rounded-xl"
+                disabled={loading || razorpayLoading}
+                onClick={handleRazorpayPay}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl shadow-lg shadow-indigo-600/25 disabled:opacity-60 transition"
               >
-                Cancel
+                <CreditCard className="w-4 h-4" />
+                <span>{razorpayLoading ? 'Opening Razorpay...' : 'Pay Online via Razorpay'}</span>
               </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-5 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl disabled:opacity-60"
-              >
-                {loading ? 'Recording...' : 'Record Payment'}
-              </button>
+
+              {/* Manual Offline Record Button */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-xs font-medium text-slate-400 hover:bg-slate-800 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || razorpayLoading}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold bg-emerald-600/20 border border-emerald-500/30 hover:bg-emerald-600/30 text-emerald-300 rounded-xl disabled:opacity-60 transition"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{loading ? 'Recording...' : 'Record Cash / Manual UPI'}</span>
+                </button>
+              </div>
             </div>
           </form>
         )}
