@@ -3,7 +3,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import TripWorkspaceLayout from './components/layout/TripWorkspaceLayout';
 import Footer from './components/common/Footer';
-
+import TripMemoriesPage from './pages/trip-workspace/TripMemoriesPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
@@ -13,6 +13,7 @@ import TripOverviewPage from './pages/trip-workspace/TripOverviewPage';
 import TripItineraryPage from './pages/trip-workspace/TripItineraryPage';
 import TripFinancePage from './pages/trip-workspace/TripFinancePage';
 import TripDocumentsPage from './pages/trip-workspace/TripDocumentsPage';
+import TripAiGuidePage from './pages/trip-workspace/TripAiGuidePage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 
 export default function App() {
@@ -34,16 +35,19 @@ export default function App() {
             <Route path="/trips" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            
 
             {/* Both email link (/invitations/accept) and notification link (/trips/:tripId/invitations) */}
             <Route path="/invitations/accept" element={<AcceptInvitePage />} />
             <Route path="/trips/:tripId/invitations" element={<AcceptInvitePage />} />
 
             <Route path="/trips/:tripId" element={<TripWorkspaceLayout />}>
+               <Route path="memories" element={<TripMemoriesPage />} />
               <Route index element={<TripOverviewPage />} />
               <Route path="itinerary" element={<TripItineraryPage />} />
               <Route path="finance" element={<TripFinancePage />} />
               <Route path="documents" element={<TripDocumentsPage />} />
+              <Route path="ai-guide" element={<TripAiGuidePage />} />
             </Route>
 
             <Route

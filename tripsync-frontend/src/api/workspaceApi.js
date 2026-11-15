@@ -42,4 +42,33 @@ export const workspaceApi = {
   getNotifications: () => axiosClient.get('/api/notifications'),
   markNotificationRead: (notificationId) =>
     axiosClient.patch(`/api/notifications/${notificationId}/read`),
+
+  // AI Travel Advisor
+  getTripAiGuide: (tripId, data = {}) =>
+    axiosClient.post(`/api/trips/${tripId}/ai/guide`, data),
+  discoverAiDestination: (data) =>
+    axiosClient.post('/api/ai/discover', data),
+
+  // Smart Debt Simplification
+  getSimplifiedDebts: (tripId) =>
+    axiosClient.get(`/api/trips/${tripId}/debts/simplify`),
+  // Group Polls & Voting
+  getTripPolls: (tripId) => axiosClient.get(`/api/trips/${tripId}/polls`),
+  createTripPoll: (tripId, data) => axiosClient.post(`/api/trips/${tripId}/polls`, data),
+  voteTripPoll: (tripId, pollId, optionId) =>
+    axiosClient.post(`/api/trips/${tripId}/polls/${pollId}/vote/${optionId}`),
+  toggleCloseTripPoll: (tripId, pollId) =>
+    axiosClient.patch(`/api/trips/${tripId}/polls/${pollId}/toggle-close`),
+  deleteTripPoll: (tripId, pollId) =>
+    axiosClient.delete(`/api/trips/${tripId}/polls/${pollId}`),
+  // Trip Memories & Photo Wall
+  getTripMemories: (tripId) => axiosClient.get(`/api/trips/${tripId}/memories`),
+  uploadTripMemory: (tripId, formData) =>
+    axiosClient.post(`/api/trips/${tripId}/memories`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  toggleMemoryLike: (tripId, memoryId) =>
+    axiosClient.post(`/api/trips/${tripId}/memories/${memoryId}/like`),
+  deleteTripMemory: (tripId, memoryId) =>
+    axiosClient.delete(`/api/trips/${tripId}/memories/${memoryId}`),
 };

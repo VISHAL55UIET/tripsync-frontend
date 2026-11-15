@@ -8,9 +8,12 @@ import {
   Scale,
   Wallet,
   Users,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 import { useTrip } from '../../context/TripContext';
 import { financeApi } from '../../api/financeApi';
+import { workspaceApi } from '../../api/workspaceApi';
 import AddExpenseModal from '../../features/finance/AddExpenseModal';
 import SettleBalanceModal from '../../features/finance/SettleBalanceModal';
 
@@ -19,19 +22,22 @@ export default function TripFinancePage() {
   const [expenses, setExpenses] = useState([]);
   const [balances, setBalances] = useState([]);
   const [settlements, setSettlements] = useState([]);
+  const [simplifiedDebts, setSimplifiedDebts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [settleModalOpen, setSettleModalOpen] = useState(false);
+  const [selectedDebt, setSelectedDebt] = useState(null);
 
   const loadFinanceData = useCallback(async () => {
     if (!trip?.id) return;
     try {
       setLoading(true);
-      const [balRes, expRes, setRes] = await Promise.allSettled([
+      const [balRes, expRes, setRes, debtRes] = await Promise.allSettled([
         financeApi.getBalances(trip.id),
         financeApi.getExpenses(trip.id),
         financeApi.getSettlements(trip.id),
+        workspaceApi.getSimplifiedDebts(trip.id),
       ]);
 
       if (balRes.status === 'fulfilled' && Array.isArray(balRes.value)) {
@@ -42,6 +48,9 @@ export default function TripFinancePage() {
       }
       if (setRes.status === 'fulfilled' && Array.isArray(setRes.value)) {
         setSettlements(setRes.value);
+      }
+      if (debtRes.status === 'fulfilled' && Array.isArray(debtRes.value)) {
+        setSimplifiedDebts(debtRes.value);
       }
     } catch (err) {
       console.error('Failed to load finance data:', err);
@@ -54,7 +63,11 @@ export default function TripFinancePage() {
     loadFinanceData();
   }, [loadFinanceData]);
 
-  // Total Trip Spend balances ke totalPaid ke sum se nikalega
+  const handleOpenSettle = (debt = null) => {
+    setSelectedDebt(debt);
+    setSettleModalOpen(true);
+  };
+
   const totalTripSpend = balances.reduce((sum, b) => sum + Number(b.totalPaid ?? 0), 0);
   const totalSettled = balances.reduce((sum, b) => sum + Number(b.settlementsSent ?? 0), 0);
 
@@ -100,7 +113,7 @@ export default function TripFinancePage() {
           {permissions.canEdit && (
             <>
               <button
-                onClick={() => setSettleModalOpen(true)}
+                onClick={() => handleOpenSettle(null)}
                 className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25 rounded-xl transition"
               >
                 <CheckCircle2 className="w-4 h-4" />
@@ -114,6 +127,83 @@ export default function TripFinancePage() {
                 <span>Add Expense</span>
               </button>
             </>
+          )}
+        </div>
+      </div>
+
+      {/* Smart Debt Simplification (Minimum Transactions) */}
+      <div className="bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden">
+        <div className="h-1 bg-gradient-to-r from-emerald-400 via-teal-500 to-indigo-500" />
+        <div className="p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 flex items-center justify-center">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-white">Smart Debt Simplification</h3>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    Min Transactions
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Optimized settlement plan to clear all group dues in the fewest payments
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-semibold text-slate-300 bg-slate-950 border border-slate-800 px-3 py-1 rounded-full">
+              {simplifiedDebts.length}{' '}
+              {simplifiedDebts.length === 1 ? 'Transaction' : 'Transactions'} Needed
+            </span>
+          </div>
+
+          {simplifiedDebts.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-sm font-semibold text-emerald-400">
+                All settled up! No pending dues between members.
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Add group expenses to automatically calculate optimal settlements.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-5">
+              {simplifiedDebts.map((debt, idx) => (
+                <div
+                  key={`${debt.fromUserId}-${debt.toUserId}-${idx}`}
+                  className="bg-slate-950/80 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-4 flex items-center justify-between gap-3 transition"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center justify-center shrink-0">
+                      {debt.fromUserName?.charAt(0)?.toUpperCase() || 'P'}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 text-sm font-bold text-white flex-wrap">
+                        <span className="truncate">{debt.fromUserName}</span>
+                        <ArrowRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="truncate text-emerald-300">{debt.toUserName}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Pays{' '}
+                        <span className="font-extrabold text-white">
+                          ₹{Number(debt.amount).toFixed(2)}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {permissions.canEdit && (
+                    <button
+                      onClick={() => handleOpenSettle(debt)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-slate-950 shadow-md shadow-emerald-600/20 shrink-0 transition"
+                    >
+                      Settle Now
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -186,7 +276,6 @@ export default function TripFinancePage() {
                       )}
                     </div>
 
-                    {/* 4-Metric Mini Grid from MemberBalanceResponse */}
                     <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-800/80 text-center">
                       <div className="bg-slate-900/90 rounded-xl p-2">
                         <p className="text-[10px] uppercase text-slate-500 font-semibold">Paid</p>
@@ -221,7 +310,7 @@ export default function TripFinancePage() {
         </div>
       </div>
 
-      {/* Optional Expenses & Settlements Lists (jab backend GET endpoints add honge tab auto-populate honge) */}
+      {/* Optional Expenses & Settlements Lists */}
       {(expenses.length > 0 || settlements.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {expenses.length > 0 && (
@@ -277,9 +366,13 @@ export default function TripFinancePage() {
 
       <SettleBalanceModal
         isOpen={settleModalOpen}
-        onClose={() => setSettleModalOpen(false)}
+        onClose={() => {
+          setSettleModalOpen(false);
+          setSelectedDebt(null);
+        }}
         tripId={trip.id}
         members={members}
+        initialSettlement={selectedDebt}
         onSettled={loadFinanceData}
       />
     </div>

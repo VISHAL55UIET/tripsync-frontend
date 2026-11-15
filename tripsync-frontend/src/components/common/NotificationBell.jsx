@@ -1,15 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Bell,
-  Check,
   CheckCheck,
   ExternalLink,
   MailPlus,
+  Send,
   UserCheck,
   UserX,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { workspaceApi } from '../../api/workspaceApi';
+
+function formatTimeAgo(dateString) {
+  if (!dateString) return '';
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffSec = Math.max(1, Math.floor((now - past) / 1000));
+
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return past.toLocaleDateString();
+}
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
@@ -28,8 +44,14 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchNotifications, 10000); // 10s polling
+    const handleInstantRefresh = () => fetchNotifications();
+    window.addEventListener('notifications:refresh', handleInstantRefresh);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notifications:refresh', handleInstantRefresh);
+    };
   }, []);
 
   useEffect(() => {
@@ -80,8 +102,14 @@ export default function NotificationBell() {
     switch (type) {
       case 'INVITATION_RECEIVED':
         return (
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
             <MailPlus className="w-4 h-4" />
+          </div>
+        );
+      case 'INVITATION_SENT':
+        return (
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0">
+            <Send className="w-4 h-4" />
           </div>
         );
       case 'INVITATION_ACCEPTED':
@@ -92,7 +120,7 @@ export default function NotificationBell() {
         );
       case 'INVITATION_REJECTED':
         return (
-          <div className="w-8 h-8 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
             <UserX className="w-4 h-4" />
           </div>
         );
@@ -108,13 +136,16 @@ export default function NotificationBell() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          setOpen(!open);
+          if (!open) fetchNotifications();
+        }}
         className="relative p-2 text-slate-400 hover:text-white hover:bg-slate-900 rounded-xl transition"
         aria-label="Notifications"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className={`w-5 h-5 ${unreadCount > 0 ? 'text-rose-400' : ''}`} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
+          <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -126,7 +157,7 @@ export default function NotificationBell() {
             <div className="flex items-center gap-2">
               <span className="font-semibold text-sm text-white">Notifications</span>
               {unreadCount > 0 && (
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
                   {unreadCount} new
                 </span>
               )}
@@ -158,28 +189,37 @@ export default function NotificationBell() {
                   key={n.id}
                   onClick={() => handleNotificationClick(n)}
                   className={`p-3.5 cursor-pointer hover:bg-slate-800/70 transition flex items-start gap-3 ${
-                    !n.read ? 'bg-indigo-500/10' : ''
+                    !n.read ? 'bg-rose-500/10 border-l-2 border-l-rose-500' : ''
                   }`}
                 >
                   {getTypeIcon(n.type)}
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-100 flex items-center gap-1.5">
-                      <span className="truncate">{n.title}</span>
-                      {n.tripId && (
-                        <ExternalLink className="w-3 h-3 text-indigo-400 shrink-0" />
-                      )}
-                    </p>
-                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{n.message}</p>
-                    <p className="text-[11px] text-slate-500 mt-1.5">
-                      {n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-100 flex items-center gap-1.5 truncate">
+                        <span className="truncate">{n.title}</span>
+                        {n.tripId && (
+                          <ExternalLink className="w-3 h-3 text-indigo-400 shrink-0" />
+                        )}
+                      </p>
+                      <span className="text-[11px] font-medium text-slate-400 shrink-0">
+                        {formatTimeAgo(n.createdAt)}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">{n.message}</p>
+
+                    {!n.read && (
+                      <span className="inline-block mt-1.5 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">
+                        New Invite • Click to review
+                      </span>
+                    )}
                   </div>
 
                   {!n.read && (
                     <span
                       title="Unread"
-                      className="w-2 h-2 rounded-full bg-indigo-400 shrink-0 mt-2"
+                      className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0 mt-1.5"
                     />
                   )}
                 </div>

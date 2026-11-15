@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -7,12 +8,28 @@ import {
   FileText,
   LayoutDashboard,
   Sparkles,
+  Camera,
 } from 'lucide-react';
 import { TripProvider, useTrip } from '../../context/TripContext';
+import { useAuth } from '../../context/AuthContext';
+import { useTripLiveSync } from '../../hooks/useTripLiveSync';
 
 function WorkspaceInner() {
   const { trip, myTripRole, loading } = useTrip();
+  const { user } = useAuth();
   const { tripId } = useParams();
+  const [liveToast, setLiveToast] = useState(null);
+
+  useTripLiveSync(tripId, (event) => {
+    window.dispatchEvent(new CustomEvent('tripsync:live-update', { detail: event }));
+
+    if (!event.actorEmail || event.actorEmail !== user?.email) {
+      setLiveToast(event);
+      setTimeout(() => {
+        setLiveToast((curr) => (curr?.timestamp === event.timestamp ? null : curr));
+      }, 4500);
+    }
+  });
 
   if (loading) {
     return (
@@ -38,6 +55,8 @@ function WorkspaceInner() {
     { to: `/trips/${tripId}/itinerary`, label: 'Itinerary', icon: Calendar },
     { to: `/trips/${tripId}/finance`, label: 'Expenses & Balances', icon: Wallet },
     { to: `/trips/${tripId}/documents`, label: 'Documents', icon: FileText },
+    { to: `/trips/${tripId}/memories`, label: 'Memories', icon: Camera },
+    { to: `/trips/${tripId}/ai-guide`, label: 'AI Trip Guide', icon: Sparkles },
   ];
 
   const roleStyles = {
@@ -80,6 +99,10 @@ function WorkspaceInner() {
             >
               {myTripRole}
             </span>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Live Sync
+            </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-slate-300 mt-3">
@@ -119,6 +142,19 @@ function WorkspaceInner() {
       </div>
 
       <Outlet />
+
+      {/* Floating Real-Time Toast Banner */}
+      {liveToast && (
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm bg-slate-900/95 border border-indigo-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-start gap-3">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 mt-1.5 shrink-0 animate-ping" />
+          <div className="text-xs">
+            <p className="font-bold text-indigo-300 uppercase tracking-wider text-[10px]">
+              Live Trip Update • {liveToast.module}
+            </p>
+            <p className="text-slate-100 mt-0.5 font-medium">{liveToast.message}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

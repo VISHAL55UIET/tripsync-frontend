@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { tripApi } from '../../api/tripApi';
 import EditTripModal from '../../features/trips/EditTripModal';
 import InviteMemberModal from '../../features/trips/InviteMemberModal';
+import TripPollsSection from '../../features/polls/TripPollsSection';
 
 const AVATAR_GRADIENTS = [
   'from-indigo-600 to-violet-600',
@@ -253,6 +254,9 @@ export default function TripOverviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Group Polls & Decisions */}
+      <TripPollsSection tripId={trip.id} canEdit={permissions?.canEdit} />
 
       <EditTripModal
         isOpen={editOpen}

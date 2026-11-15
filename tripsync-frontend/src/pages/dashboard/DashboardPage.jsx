@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import AiDiscoverModal from '../../features/trips/AiDiscoverModal';
 import {
   Plus,
   MapPin,
@@ -100,6 +101,7 @@ export default function DashboardPage() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [prefillTemplate, setPrefillTemplate] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -193,13 +195,31 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <button
-            onClick={openBlankModal}
-            className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-semibold px-6 py-3.5 rounded-2xl shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] shrink-0"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Create New Trip</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              onClick={() => setAiModalOpen(true)}
+              className="relative group inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 hover:brightness-110 shadow-lg shadow-fuchsia-600/25 transition-all hover:scale-[1.02]"
+            >
+              <span className="absolute -top-2.5 -right-2 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-emerald-400 text-slate-950 rounded-full shadow animate-pulse">
+                NEW
+              </span>
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <div className="text-left leading-tight">
+                <span className="block">AI Trip Advisor</span>
+                <span className="block text-[10px] font-medium text-indigo-100/90">
+                  Click Once & Generate
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={openBlankModal}
+              className="inline-flex items-center justify-center gap-2 bg-slate-800/90 hover:bg-slate-800 border border-slate-700 text-white text-sm font-semibold px-5 py-3.5 rounded-2xl shadow-lg transition-all hover:scale-[1.02]"
+            >
+              <Plus className="w-5 h-5 text-indigo-400" />
+              <span>Create New Trip</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -420,6 +440,8 @@ export default function DashboardPage() {
         initialData={prefillTemplate}
         onCreated={(newTrip) => setTrips((prev) => [newTrip, ...prev])}
       />
+
+      <AiDiscoverModal isOpen={aiModalOpen} onClose={() => setAiModalOpen(false)} />
     </div>
   );
 }

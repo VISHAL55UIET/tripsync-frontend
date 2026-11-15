@@ -1,9 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, AlertCircle, UserCheck, CreditCard, CheckCircle2 } from 'lucide-react';
+import { X, AlertCircle, UserCheck, CreditCard, CheckCircle2, Info } from 'lucide-react';
 import { financeApi } from '../../api/financeApi';
 import { useAuth } from '../../context/AuthContext';
 
-export default function SettleBalanceModal({ isOpen, onClose, tripId, members, onSettled }) {
+export default function SettleBalanceModal({
+  isOpen,
+  onClose,
+  tripId,
+  members,
+  initialSettlement,
+  onSettled,
+}) {
   const { user } = useAuth();
   const [payeeId, setPayeeId] = useState('');
   const [amount, setAmount] = useState('');
@@ -16,18 +23,42 @@ export default function SettleBalanceModal({ isOpen, onClose, tripId, members, o
     return (members || []).filter((m) => m.email !== user?.email);
   }, [members, user?.email]);
 
+  const currentUserMember = useMemo(() => {
+    return (members || []).find((m) => m.email === user?.email);
+  }, [members, user?.email]);
+
   useEffect(() => {
     if (isOpen) {
       setError('');
-      if (eligiblePayees.length > 0) {
-        setPayeeId(eligiblePayees[0].userId);
+      if (initialSettlement) {
+        const matchedPayee = eligiblePayees.find(
+          (m) => Number(m.userId) === Number(initialSettlement.toUserId)
+        );
+        setPayeeId(
+          matchedPayee
+            ? matchedPayee.userId
+            : eligiblePayees.length > 0
+            ? eligiblePayees[0].userId
+            : ''
+        );
+        setAmount(
+          initialSettlement.amount != null ? Number(initialSettlement.amount).toFixed(2) : ''
+        );
+        setNote(`Simplified settlement to ${initialSettlement.toUserName}`);
       } else {
-        setPayeeId('');
+        setPayeeId(eligiblePayees.length > 0 ? eligiblePayees[0].userId : '');
+        setAmount('');
+        setNote('');
       }
     }
-  }, [eligiblePayees, isOpen]);
+  }, [eligiblePayees, initialSettlement, isOpen]);
 
   if (!isOpen) return null;
+
+  const isDifferentPayer =
+    initialSettlement &&
+    currentUserMember &&
+    Number(initialSettlement.fromUserId) !== Number(currentUserMember.userId);
 
   const validateInputs = (minAmount = 0.01) => {
     setError('');
@@ -69,7 +100,7 @@ export default function SettleBalanceModal({ isOpen, onClose, tripId, members, o
 
   // 2. Online Razorpay Settlement
   const handleRazorpayPay = async () => {
-    const validAmount = validateInputs(1.0); // Razorpay minimum ₹1.00
+    const validAmount = validateInputs(1.0);
     if (!validAmount) return;
 
     if (!window.Razorpay) {
@@ -152,6 +183,17 @@ export default function SettleBalanceModal({ isOpen, onClose, tripId, members, o
           <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {isDifferentPayer && (
+          <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2">
+            <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <span>
+              Note: This simplified debt is owed by{' '}
+              <strong>{initialSettlement.fromUserName}</strong>, but submitting here will record a
+              payment from your account ({user?.fullName}).
+            </span>
           </div>
         )}
 
