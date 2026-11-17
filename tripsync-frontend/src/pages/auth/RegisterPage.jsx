@@ -9,9 +9,55 @@ import {
   EyeOff,
   AlertCircle,
   ArrowRight,
-  CheckCircle2,
+  Sparkles,
+  Bot,
+  CreditCard,
+  CalendarDays,
+  Wallet,
+  Vote,
+  FolderLock,
 } from 'lucide-react';
 import { authApi } from '../../api/authApi';
+
+const FEATURES = [
+  {
+    icon: Bot,
+    title: 'AI One-Click Planner',
+    desc: 'Generate complete multi-day itineraries & budgets instantly with Gemini AI.',
+    badge: 'AI',
+    iconBg: 'bg-amber-500/20 text-amber-400',
+  },
+  {
+    icon: CreditCard,
+    title: 'Razorpay Instant Settle',
+    desc: 'Pay & settle shared trip balances in one click with verified receipts.',
+    iconBg: 'bg-sky-500/20 text-sky-400',
+  },
+  {
+    icon: CalendarDays,
+    title: 'Collaborative Schedules',
+    desc: 'Invite friends via email with Owner, Editor & Viewer role controls.',
+    iconBg: 'bg-indigo-500/20 text-indigo-400',
+  },
+  {
+    icon: Wallet,
+    title: 'Smart Debt Simplifier',
+    desc: 'Track group expenses and minimize transactions automatically.',
+    iconBg: 'bg-emerald-500/20 text-emerald-400',
+  },
+  {
+    icon: Vote,
+    title: 'Live Polls & WebSockets',
+    desc: 'Real-time group voting and instant notifications across devices.',
+    iconBg: 'bg-violet-500/20 text-violet-400',
+  },
+  {
+    icon: FolderLock,
+    title: 'Ticket Vault & Memories',
+    desc: 'Store boarding passes, hotel vouchers & shared trip photos safely.',
+    iconBg: 'bg-rose-500/20 text-rose-400',
+  },
+];
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ fullName: '', email: '', password: '' });
@@ -56,7 +102,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-slate-950 text-slate-100">
       {/* Left Brand Showcase Panel */}
-      <div className="hidden lg:flex lg:col-span-6 xl:col-span-7 bg-gradient-to-br from-slate-950 via-indigo-950/60 to-slate-950 border-r border-slate-800/80 p-12 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:col-span-6 xl:col-span-7 bg-gradient-to-br from-slate-950 via-indigo-950/60 to-slate-950 border-r border-slate-800/80 p-10 xl:p-12 flex-col justify-between relative overflow-hidden">
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600/25 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-emerald-600/15 rounded-full blur-3xl pointer-events-none" />
 
@@ -65,33 +111,53 @@ export default function RegisterPage() {
             <Compass className="w-6 h-6 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight text-white">TripSync</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+            Workspace
+          </span>
         </div>
 
-        <div className="relative z-10 max-w-xl my-auto">
-          <h1 className="text-4xl xl:text-5xl font-bold tracking-tight leading-[1.15] text-white">
+        <div className="relative z-10 max-w-2xl my-auto py-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-indigo-300 mb-5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>Free workspace for group trips & shared expenses</span>
+          </div>
+
+          <h1 className="text-3xl xl:text-5xl font-bold tracking-tight leading-[1.15] text-white">
             Your next adventure deserves a{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">
               smarter workspace.
             </span>
           </h1>
 
-          <ul className="space-y-4 mt-8 text-slate-300 text-sm">
-            {[
-              'Invite friends via secure email links with Owner, Editor & Viewer roles',
-              'Build multi-day itineraries with time slots, locations & cost estimates',
-              'Track group expenses and settle balances in one click',
-              'Centralized vault for flight tickets, hotel vouchers & IDs',
-            ].map((item, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="grid grid-cols-2 gap-3.5 mt-7">
+            {FEATURES.map((feat, idx) => {
+              const Icon = feat.icon;
+              return (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800/90 hover:border-indigo-500/40 transition backdrop-blur-xs"
+                >
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${feat.iconBg}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    {feat.badge && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        {feat.badge}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-semibold text-sm text-white">{feat.title}</h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">{feat.desc}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="relative z-10 text-xs text-slate-500 border-t border-slate-800/80 pt-6">
+        <div className="relative z-10 flex items-center justify-between text-xs text-slate-500 border-t border-slate-800/80 pt-5">
           <span>© 2026 TripSync Inc. • Built for seamless group travel</span>
+          <span>Gemini AI • WebSockets • Razorpay</span>
         </div>
       </div>
 

@@ -12,8 +12,52 @@ import {
   Sparkles,
   Wallet,
   CalendarDays,
+  Bot,
+  CreditCard,
+  Vote,
+  FolderLock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+
+const FEATURES = [
+  {
+    icon: Bot,
+    title: 'AI One-Click Planner',
+    desc: 'Generate full day-by-day itineraries & budgets instantly with Gemini AI.',
+    badge: 'NEW',
+    iconBg: 'bg-amber-500/20 text-amber-400',
+  },
+  {
+    icon: CreditCard,
+    title: 'Razorpay Instant Settle',
+    desc: 'Settle group debts in one click via UPI, cards & netbanking.',
+    iconBg: 'bg-sky-500/20 text-sky-400',
+  },
+  {
+    icon: CalendarDays,
+    title: 'Live Itineraries',
+    desc: 'Collaborative schedules with time slots, maps & role permissions.',
+    iconBg: 'bg-indigo-500/20 text-indigo-400',
+  },
+  {
+    icon: Wallet,
+    title: 'Smart Expense Splits',
+    desc: 'Automated net balance engine with equal & exact split support.',
+    iconBg: 'bg-emerald-500/20 text-emerald-400',
+  },
+  {
+    icon: Vote,
+    title: 'Real-Time Polls & Sync',
+    desc: 'Vote on stays & activities with instant WebSocket live updates.',
+    iconBg: 'bg-violet-500/20 text-violet-400',
+  },
+  {
+    icon: FolderLock,
+    title: 'Document Vault & Memories',
+    desc: 'Centralized tickets, hotel vouchers & shared trip photo gallery.',
+    iconBg: 'bg-rose-500/20 text-rose-400',
+  },
+];
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -48,7 +92,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-slate-950 text-slate-100">
       {/* Left Brand Showcase Panel */}
-      <div className="hidden lg:flex lg:col-span-6 xl:col-span-7 bg-gradient-to-br from-slate-950 via-indigo-950/60 to-slate-950 border-r border-slate-800/80 p-12 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:col-span-6 xl:col-span-7 bg-gradient-to-br from-slate-950 via-indigo-950/60 to-slate-950 border-r border-slate-800/80 p-10 xl:p-12 flex-col justify-between relative overflow-hidden">
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600/25 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-[30rem] h-[30rem] bg-violet-600/20 rounded-full blur-3xl pointer-events-none" />
 
@@ -62,50 +106,53 @@ export default function LoginPage() {
           </span>
         </div>
 
-        <div className="relative z-10 max-w-xl my-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-indigo-300 mb-6">
+        <div className="relative z-10 max-w-2xl my-auto py-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-indigo-300 mb-5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>All-in-one group travel & expense engine</span>
+            <span>AI-powered group travel & expense workspace</span>
           </div>
 
-          <h1 className="text-4xl xl:text-5xl font-bold tracking-tight leading-[1.15] text-white">
+          <h1 className="text-3xl xl:text-5xl font-bold tracking-tight leading-[1.15] text-white">
             Plan together.{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-sky-400 to-emerald-400">
               Split effortlessly.
             </span>
           </h1>
 
-          <p className="text-slate-400 text-base mt-4 leading-relaxed">
-            Coordinate day-by-day itineraries, manage group roles, store booking documents, and
-            settle shared expenses in a dark, distraction-free workspace.
+          <p className="text-slate-400 text-sm xl:text-base mt-3 leading-relaxed">
+            Generate AI itineraries in one click, collaborate in real time, store booking documents,
+            and settle shared expenses via Razorpay in a distraction-free workspace.
           </p>
 
-          <div className="grid grid-cols-2 gap-4 mt-10">
-            <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 backdrop-blur-xs">
-              <div className="w-9 h-9 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-3">
-                <CalendarDays className="w-5 h-5" />
-              </div>
-              <h3 className="font-semibold text-sm text-white">Live Itineraries</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Collaborative day schedules with role-based permissions.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 backdrop-blur-xs">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3">
-                <Wallet className="w-5 h-5" />
-              </div>
-              <h3 className="font-semibold text-sm text-white">Smart Settlements</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Real-time net balances with equal & exact expense splits.
-              </p>
-            </div>
+          <div className="grid grid-cols-2 gap-3.5 mt-7">
+            {FEATURES.map((feat, idx) => {
+              const Icon = feat.icon;
+              return (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800/90 hover:border-indigo-500/40 transition backdrop-blur-xs"
+                >
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${feat.iconBg}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    {feat.badge && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        {feat.badge}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-semibold text-sm text-white">{feat.title}</h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">{feat.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        <div className="relative z-10 flex items-center justify-between text-xs text-slate-500 border-t border-slate-800/80 pt-6">
+        <div className="relative z-10 flex items-center justify-between text-xs text-slate-500 border-t border-slate-800/80 pt-5">
           <span>© 2026 TripSync Inc. All rights reserved.</span>
-          <span>Enterprise-grade JWT & RBAC Security</span>
+          <span>Gemini AI • WebSockets • Razorpay • JWT RBAC</span>
         </div>
       </div>
 
